@@ -172,14 +172,14 @@ func (w *envelopeWriter) Marshal(message any) *connect.Error {
 func (w *envelopeWriter) Write(env *envelope) *connect.Error {
 	if env.IsSet(flagEnvelopeCompressed) ||
 		w.compressionPool == nil ||
-		env.Data.Len() <= w.compressMinBytes {
-		if w.sendMaxBytes > 0 && env.Data.Len() >= w.sendMaxBytes {
+		env.Data.Len() < w.compressMinBytes {
+		if w.sendMaxBytes > 0 && env.Data.Len() > w.sendMaxBytes {
 			return connect.Errorf(connect.CodeResourceExhausted, "message size %d exceeds sendMaxBytes %d", env.Data.Len(), w.sendMaxBytes)
 		}
 		size, compressedSize := env.Data.Len(), 0
 		if env.IsSet(flagEnvelopeCompressed) {
 			// Pre-compressed payload; uncompressed size unknown.
-			size, compressedSize = env.Data.Len(), 0
+			size, compressedSize = 0, env.Data.Len()
 		}
 		if err := w.write(env); err != nil {
 			return err
@@ -193,7 +193,7 @@ func (w *envelopeWriter) Write(env *envelope) *connect.Error {
 	if err := w.compressionPool.Compress(data, env.Data); err != nil {
 		return err
 	}
-	if w.sendMaxBytes > 0 && data.Len() >= w.sendMaxBytes {
+	if w.sendMaxBytes > 0 && data.Len() > w.sendMaxBytes {
 		return connect.Errorf(connect.CodeResourceExhausted, "compressed message size %d exceeds sendMaxBytes %d", data.Len(), w.sendMaxBytes)
 	}
 	compressedSize := data.Len() // before write drains the buffer
@@ -203,7 +203,7 @@ func (w *envelopeWriter) Write(env *envelope) *connect.Error {
 	}); err != nil {
 		return err
 	}
-	w.recordStats(env.Flags|flagEnvelopeCompressed, size, compressedSize)
+	w.recordStats(env.Flags, size, compressedSize)
 	return nil
 }
 
