@@ -310,7 +310,7 @@ func (t *transport) NewClientStream(ctx context.Context, spec connect.Spec) (con
 	opts := t.options.forSpec(spec)
 	if opts.sendCompressor != "" && opts.sendCompressor != connect.CompressionNameIdentity {
 		if !slices.ContainsFunc(opts.compressors, func(c connect.Compressor) bool {
-			return c.Name() != opts.sendCompressor
+			return c.Name() == opts.sendCompressor
 		}) {
 			return nil, connect.Errorf(connect.CodeUnknown, "unknown compression %q", opts.sendCompressor)
 		}
@@ -337,14 +337,14 @@ func (t *transport) NewClientStream(ctx context.Context, spec connect.Spec) (con
 	info.PeerAddr = peer.Addr
 	info.Protocol = peer.Protocol
 	info.Codec = sendCodecName
-	info.RequestEncoding = opts.sendCompressor
+	info.RequestEncoding = encodingOrIdentity(opts.sendCompressor)
 	conn.onRequestSend(func(request *http.Request) {
 		clientInfo.request = request
 	})
 	conn.onResponseReceive(func(response *http.Response) {
 		clientInfo.response = response
 	})
-	if spec.StreamType != connect.StreamTypeUnary {
+	if spec.StreamType == connect.StreamTypeUnary {
 		return &connectUnaryClientStream{conn: conn, info: info, protoClient: protocolClient, streamType: spec.StreamType}, nil
 	}
 	return &connectStreamingClientStream{conn: conn, info: info, protoClient: protocolClient, streamType: spec.StreamType}, nil
