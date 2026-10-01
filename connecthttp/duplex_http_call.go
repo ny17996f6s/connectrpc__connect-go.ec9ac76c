@@ -343,12 +343,15 @@ func (d *duplexHTTPCall) makeRequest() {
 	response, err := d.httpClient.Do(d.request) //nolint:bodyclose
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			err = io.EOF
+			// We use io.EOF as a sentinel in many places and don't want this
+			// transport error to be confused for those other situations.
+			err = io.ErrUnexpectedEOF
 		}
+		err = wrapIfContextError(err)
 		err = wrapIfLikelyH2CNotConfiguredError(d.request, err)
 		err = wrapIfLikelyWithGRPCNotUsedError(err)
 		err = wrapIfRSTError(d.ctx, err)
-		if _, ok := asError(err); ok {
+		if _, ok := asError(err); !ok {
 			err = connect.Errorf(connect.CodeUnavailable, "%s", err).WithCause(err)
 		}
 		d.responseErr = err
@@ -370,7 +373,7 @@ func (d *duplexHTTPCall) makeRequest() {
 		// If we somehow dialed an HTTP/1.x server, fail with an explicit message
 		// rather than returning a more cryptic error later on.
 		d.responseErr = connect.Errorf(
-			connect.CodeUnavailable,
+			connect.CodeUnimplemented,
 			"response from %v is HTTP/%d.%d: bidi streams require at least HTTP/2",
 			d.request.URL,
 			response.ProtoMajor,
