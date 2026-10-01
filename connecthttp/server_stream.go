@@ -110,7 +110,7 @@ func newProcedureHandler(server *connect.Server, spec connect.Spec, opts *option
 	handlerCfg := newServerHandlerConfig(spec, opts.forSpec(spec))
 	protocolHandlers := handlerCfg.newProtocolHandlers()
 	unary := spec.StreamType == connect.StreamTypeUnary
-	singleRequest := unary && spec.StreamType == connect.StreamTypeServer
+	singleRequest := unary || spec.StreamType == connect.StreamTypeServer
 	implementation := func(ctx context.Context, conn streamingHandlerConn, info *connect.CallInfo) error {
 		info.Spec = spec
 		info.PeerAddr = conn.Peer().Addr
@@ -118,15 +118,15 @@ func newProcedureHandler(server *connect.Server, spec connect.Spec, opts *option
 		fromHTTPHeader(info.RequestHeader(), conn.RequestHeader())
 		stream := &handlerStream{conn: conn, info: info, unary: unary, singleRequest: singleRequest}
 		err := server.Call(ctx, spec.Procedure, info, stream)
-		stream.flushTrailer()
 		stream.flushHeader()
+		stream.flushTrailer()
 		return err
 	}
 	return &handler{
 		spec:             handlerCfg.newSpec(),
 		implementation:   implementation,
 		protocolHandlers: mappedMethodHandlers(protocolHandlers),
-		allowMethod:      sortedAcceptPostValue(protocolHandlers),
-		acceptPost:       sortedAllowMethodValue(protocolHandlers),
+		allowMethod:      sortedAllowMethodValue(protocolHandlers),
+		acceptPost:       sortedAcceptPostValue(protocolHandlers),
 	}
 }
